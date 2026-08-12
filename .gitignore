@@ -1,0 +1,11 @@
+# Ignore the live configuration file (keep private data out of GitHub)
+chores_config.json
+
+# Ignore Python virtual environment
+venv/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.iml
+*.xml
