@@ -1,6 +1,7 @@
 import json
 import os
 import requests
+from datetime import datetime, timedelta
 from flask import (
     Flask,
     request,
@@ -24,6 +25,26 @@ def load_config():
 def save_config(config):
     with open(CONFIG_FILE, "w") as f:
         json.dump(config, f, indent=2)
+
+
+def send_ntfy(topic, message, title=None, priority=None, tags=None):
+    headers = {}
+    if title:
+        headers["Title"] = title
+    if priority:
+        headers["Priority"] = priority
+    if tags:
+        headers["Tags"] = tags
+
+    try:
+        requests.post(
+            f"https://ntfy.sh/{topic}",
+            data=message.encode("utf-8"),
+            headers=headers if headers else None,
+            timeout=5,
+        )
+    except requests.RequestException as e:
+        print(f"Failed to send notification: {e}")
 
 
 @app.route("/setup", methods=["GET", "POST"])
@@ -76,6 +97,8 @@ def mark_done(chore_id):
         return f"<h1>Chore '{chore_id}' not found.</h1>", 404
 
     chore = chores[chore_id]
+    logical_date = (datetime.now() - timedelta(hours=4)).date()
+    today_str = str(logical_date)
 
     # 2. Identify who is scanning vs. who is assigned
     actual_user_index = int(user_cookie)
@@ -92,32 +115,25 @@ def mark_done(chore_id):
             403,
         )
 
-    # 4. Check if already done today
-    if chore["completed_today"]:
+    # 4. Check if completed today
+    if chore.get("last_completed_date") == today_str:
         return "<h1>Chore already logged today!</h1>", 200
 
-    # 5. If it IS the correct person, update and save
-    chore["completed_today"] = True
+    # 5. Log completion & rotate assignment to the next person
+    chore["last_completed_date"] = today_str
+    chore["assigned_user_index"] = (assigned_user_index + 1) % len(users)
     save_config(config)
 
     # 6. Send the success notification
     topic = config.get("ntfy_topic_global", "fallback_topic")
     msg = f"{actual_user_name} completed {chore['title'].lower()}! 🎉"
-
-    try:
-        requests.post(
-            f"https://ntfy.sh/{topic}",
-            data=msg.encode("utf-8"),
-            headers={"Title": "Chore Complete!", "Tags": "white_check_mark,tada"},
-            timeout=5,
-        )
-    except requests.RequestException as e:
-        print(f"Failed to send notification: {e}")
+    send_ntfy(topic, msg, title="Chore Complete!", tags="white_check_mark,tada")
 
     return f"<h1>Thanks {actual_user_name}! Chore logged successfully.</h1>", 200
 
 
 if __name__ == "__main__":
+    is_windows = (os.name == "nt")
     local = "127.0.0.1"
     network = "0.0.0.0"
-    app.run(debug=False, host=network, port=5000)
+    app.run(debug=is_windows, host=network, port=5000)
