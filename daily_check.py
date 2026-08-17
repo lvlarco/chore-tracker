@@ -3,7 +3,6 @@ import os
 import requests
 from datetime import datetime, timedelta
 
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILE = os.path.join(BASE_DIR, "chores_config.json")
 
@@ -11,11 +10,6 @@ CONFIG_FILE = os.path.join(BASE_DIR, "chores_config.json")
 def load_config():
     with open(CONFIG_FILE, "r") as f:
         return json.load(f)
-
-
-def save_config(config):
-    with open(CONFIG_FILE, "w") as f:
-        json.dump(config, f, indent=2)
 
 
 def send_ntfy(topic, message, title=None, priority=None, tags=None):
@@ -50,26 +44,39 @@ def process_daily_chores():
         return
 
     logical_date = (datetime.now() - timedelta(hours=4)).date()
-    today_str = str(logical_date)
 
     for chore_id, chore in chores.items():
         current_user_index = chore["assigned_user_index"]
-        last_done = chore.get("last_completed_date", "")
+        last_done_str = chore.get("last_completed_date", "")
 
-        if last_done != today_str:
+        reminder_days = chore.get("reminder_days", 1)  # Defaults to 1
+
+        needs_reminder = False
+
+        if not last_done_str:
+            # If it has never been done, it immediately needs a reminder
+            needs_reminder = True
+        else:
+            last_done_date = datetime.strptime(last_done_str, "%Y-%m-%d").date()
+            days_since = (logical_date - last_done_date).days
+
+            if days_since >= reminder_days:
+                needs_reminder = True
+
+        if needs_reminder:
             current_user = users[current_user_index]
+            chore_tag = chore.get("emoji_tag", "tada")
+            tags = f"rotating_light,{chore_tag}"
             msg = (
-                f"Reminder {current_user['name']}, you didn't {chore['title'].lower()}! "
-                f"It is still your turn."
+                f"Reminder {current_user['name']}, it is time to {chore['title'].lower()}! "
+                f"It is your turn."
             )
             send_ntfy(
                 current_user["ntfy_topic_personal"],
                 msg,
                 priority="high",
-                tags="warning,rotating_light",
+                tags=tags,
             )
-
-    save_config(config)
 
 
 if __name__ == "__main__":

@@ -127,13 +127,15 @@ def mark_done(chore_id):
     # 6. Send the success notification
     topic = config.get("ntfy_topic_global", "fallback_topic")
     msg = f"{actual_user_name} completed {chore['title'].lower()}! 🎉"
-    send_ntfy(topic, msg, title="Chore Complete!", tags="white_check_mark,tada")
+    chore_tag = chore.get("emoji_tag", "tada")
+    tags = f"white_check_mark,{chore_tag}"
+    send_ntfy(topic, msg, title="Chore Complete!", tags=tags)
 
     return f"<h1>Thanks {actual_user_name}! Chore logged successfully.</h1>", 200
 
 
 if __name__ == "__main__":
-    is_windows = (os.name == "nt")
+    is_windows = os.name == "nt"
     local = "127.0.0.1"
     network = "0.0.0.0"
     app.run(debug=is_windows, host=network, port=5000)
