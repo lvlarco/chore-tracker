@@ -115,8 +115,10 @@ def mark_done(chore_id):
             403,
         )
 
-    # 4. Check if completed today
-    if chore.get("last_completed_date") == today_str:
+    # 4. Check if completed today (unless the chore allows multiple turns per day)
+    allow_same_day = chore.get("allow_same_day_turns", False)
+
+    if (not allow_same_day) and (chore.get("last_completed_date") == today_str):
         return "<h1>Chore already logged today!</h1>", 200
 
     # 5. Log completion & rotate assignment to the next person

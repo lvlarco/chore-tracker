@@ -49,7 +49,12 @@ def process_daily_chores():
         current_user_index = chore["assigned_user_index"]
         last_done_str = chore.get("last_completed_date", "")
 
-        reminder_days = chore.get("reminder_days", 1)  # Defaults to 1
+        reminder_config = chore.get("reminder_days", 1)
+
+        if isinstance(reminder_config, list):
+            reminder_days = reminder_config[current_user_index]
+        else:
+            reminder_days = reminder_config
 
         needs_reminder = False
 
