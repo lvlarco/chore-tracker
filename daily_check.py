@@ -73,12 +73,12 @@ def process_daily_chores():
             chore_tag = chore.get("emoji_tag", "tada")
             tags = f"rotating_light,{chore_tag}"
             msg = (
-                f"Reminder {current_user['name']}, it is time to {chore['title'].lower()}! "
-                f"It is your turn."
+                f"You still need to {chore['title'].lower()}!"
             )
             send_ntfy(
                 current_user["ntfy_topic_personal"],
                 msg,
+                title=f"Reminder {current_user['name']}",
                 priority="high",
                 tags=tags,
             )
