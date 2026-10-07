@@ -73,8 +73,6 @@ def setup():
             <button type="submit" style="font-size: 18px; padding: 10px 20px;">Save My Phone</button>
         </form>
     </div>
-    
-    
     """
     return render_template_string(html, users=users)
 
@@ -134,6 +132,94 @@ def mark_done(chore_id):
     send_ntfy(topic, msg, title="Chore Complete!", tags=tags)
 
     return f"<h1>Thanks {actual_user_name}! Chore logged successfully.</h1>", 200
+
+
+@app.route("/dashboard")
+def dashboard():
+    if not os.path.exists(CONFIG_FILE):
+        return "<h1>Configuration file missing.</h1>", 500
+
+    config = load_config()
+    chores = config.get("chores", {})
+    users = config.get("users", [])
+
+    logical_today = (datetime.now() - timedelta(hours=4)).date()
+    dashboard_data = []
+
+    for chore_id, chore in chores.items():
+        assigned_idx = chore["assigned_user_index"]
+        assigned_name = (
+            users[assigned_idx]["name"] if assigned_idx < len(users) else "Unknown"
+        )
+
+        last_done_str = chore.get("last_completed_date", "")
+        reminder_config = chore.get("reminder_days", 1)
+
+        if isinstance(reminder_config, list):
+            reminder_days = reminder_config[assigned_idx]
+        else:
+            reminder_days = reminder_config
+
+        if not last_done_str:
+            deadline_str = "ASAP (Never completed)"
+        else:
+            last_done_date = datetime.strptime(last_done_str, "%Y-%m-%d").date()
+            deadline_date = last_done_date + timedelta(days=reminder_days)
+            days_left = (deadline_date - logical_today).days
+
+            if days_left < 0:
+                deadline_str = f"{deadline_date.strftime('%b %d')} (Overdue)"
+            elif days_left == 0:
+                deadline_str = f"{deadline_date.strftime('%b %d')} (Today)"
+            else:
+                deadline_str = (
+                    f"{deadline_date.strftime('%b %d')} ({days_left} days left)"
+                )
+
+        dashboard_data.append(
+            {
+                "title": chore["title"],
+                "assigned": assigned_name,
+                "deadline": deadline_str,
+            }
+        )
+
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>104BR Chores</title>
+
+        <!-- Favicon & Mobile Home Screen Icons -->
+        <link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png') }}">
+        <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon.png') }}">
+
+        <!-- External CSS -->
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    </head>
+    <body>
+        <h2>104BR Chores</h2>
+        {% for chore in chores %}
+        <div class="card">
+            <div class="title">{{ chore.title }}</div>
+            <div class="row">
+                <span>Whose turn:</span>
+                <span class="val">{{ chore.assigned }}</span>
+            </div>
+            <div class="row">
+                <span>Next reminder:</span>
+                <span class="val {% if 'Overdue' in chore.deadline %}overdue{% elif 'Today' in chore.deadline %}today{% endif %}">
+                    {{ chore.deadline }}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+    </body>
+    </html>
+    """
+    return render_template_string(html, chores=dashboard_data)
 
 
 if __name__ == "__main__":

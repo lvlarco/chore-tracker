@@ -72,9 +72,7 @@ def process_daily_chores():
             current_user = users[current_user_index]
             chore_tag = chore.get("emoji_tag", "tada")
             tags = f"rotating_light,{chore_tag}"
-            msg = (
-                f"You still need to {chore['title'].lower()}!"
-            )
+            msg = f"You still need to {chore['title'].lower()}!"
             send_ntfy(
                 current_user["ntfy_topic_personal"],
                 msg,
