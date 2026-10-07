@@ -1,0 +1,22 @@
+{
+  "name": "104BR Chores",
+  "short_name": "Chores",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#f0f2f5",
+  "theme_color": "#f0f2f5",
+  "icons": [
+    {
+      "src": "/static/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

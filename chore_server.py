@@ -192,8 +192,14 @@ def dashboard():
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>104BR Chores</title>
 
+        <!-- Web App Manifest for Android Chrome -->
+        <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="theme-color" content="#f0f2f5">
+
         <!-- Favicon & Mobile Home Screen Icons -->
-        <link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png') }}">
+        <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icon.png') }}">
+        <link rel="shortcut icon" type="image/png" href="{{ url_for('static', filename='icon.png') }}">
         <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon.png') }}">
 
         <!-- External CSS -->
