@@ -57,6 +57,7 @@ def setup():
         resp = make_response(
             "<h1>Phone registered! You can close this and scan tags normally now.</h1>"
         )
+        # Fixed cookie line cleanup
         resp.set_cookie("user_index", selected_index, max_age=60 * 60 * 24 * 365 * 10)
         return resp
 
@@ -124,7 +125,7 @@ def mark_done(chore_id):
     chore["assigned_user_index"] = (assigned_user_index + 1) % len(users)
     save_config(config)
 
-    # 6. Send the success notification
+    # 6. Send the success notification (fires for all chores including change_litter_bag)
     topic = config.get("ntfy_topic_global", "fallback_topic")
     msg = f"{actual_user_name} completed {chore['title'].lower()}! 🎉"
     chore_tag = chore.get("emoji_tag", "tada")
@@ -152,29 +153,32 @@ def dashboard():
             users[assigned_idx]["name"] if assigned_idx < len(users) else "Unknown"
         )
 
-        last_done_str = chore.get("last_completed_date", "")
-        reminder_config = chore.get("reminder_days", 1)
-
-        if isinstance(reminder_config, list):
-            reminder_days = reminder_config[assigned_idx]
+        if chore.get("no_reminder", False):
+            deadline_str = "As needed"
         else:
-            reminder_days = reminder_config
+            last_done_str = chore.get("last_completed_date", "")
+            reminder_config = chore.get("reminder_days", 1)
 
-        if not last_done_str:
-            deadline_str = "ASAP (Never completed)"
-        else:
-            last_done_date = datetime.strptime(last_done_str, "%Y-%m-%d").date()
-            deadline_date = last_done_date + timedelta(days=reminder_days)
-            days_left = (deadline_date - logical_today).days
-
-            if days_left < 0:
-                deadline_str = f"{deadline_date.strftime('%b %d')} (Overdue)"
-            elif days_left == 0:
-                deadline_str = f"{deadline_date.strftime('%b %d')} (Today)"
+            if isinstance(reminder_config, list):
+                reminder_days = reminder_config[assigned_idx]
             else:
-                deadline_str = (
-                    f"{deadline_date.strftime('%b %d')} ({days_left} days left)"
-                )
+                reminder_days = reminder_config
+
+            if not last_done_str:
+                deadline_str = "ASAP (Never completed)"
+            else:
+                last_done_date = datetime.strptime(last_done_str, "%Y-%m-%d").date()
+                deadline_date = last_done_date + timedelta(days=reminder_days)
+                days_left = (deadline_date - logical_today).days
+
+                if days_left < 0:
+                    deadline_str = f"{deadline_date.strftime('%b %d')} (Overdue)"
+                elif days_left == 0:
+                    deadline_str = f"{deadline_date.strftime('%b %d')} (Today)"
+                else:
+                    deadline_str = (
+                        f"{deadline_date.strftime('%b %d')} ({days_left} days left)"
+                    )
 
         dashboard_data.append(
             {
@@ -215,7 +219,7 @@ def dashboard():
                 <span class="val">{{ chore.assigned }}</span>
             </div>
             <div class="row">
-                <span>Next reminder:</span>
+                <span>Status:</span>
                 <span class="val {% if 'Overdue' in chore.deadline %}overdue{% elif 'Today' in chore.deadline %}today{% endif %}">
                     {{ chore.deadline }}
                 </span>

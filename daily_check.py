@@ -46,6 +46,9 @@ def process_daily_chores():
     logical_date = (datetime.now() - timedelta(hours=4)).date()
 
     for chore_id, chore in chores.items():
+        if chore.get("no_reminder", False):
+            continue
+
         current_user_index = chore["assigned_user_index"]
         last_done_str = chore.get("last_completed_date", "")
 
